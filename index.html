@@ -7,7 +7,8 @@
   </head>
   <body>
     <h1>
-      Посмотрите код страницы и вывод в консоль браузера.
+      Посмотрите код страницы и вывод в консоль браузера. <br />В файле script.js дополнительные
+      задания.
     </h1>
 
     <script src="shri-async-hw.js"></script>
@@ -18,16 +19,21 @@
       function reduceCb(array, fn, initialValue, cb) {
         let accumulator = initialValue;
         let arrayLenght = 0;
-        array.length(length => {
-          arrayLenght = length;
+
+        const iterateAsyncArray = () => {
           let i = 0;
           const asyncArrayIterator = currentValue => {
             accumulator = fn(accumulator, currentValue, i, array);
-            i++;
+            i += 1;
             if (i >= length) cb(accumulator);
             else array.get(i, asyncArrayIterator);
           };
           array.get(i, asyncArrayIterator);
+        };
+
+        array.length(length => {
+          arrayLenght = length;
+          iterateAsyncArray();
         });
       }
 
@@ -84,5 +90,6 @@
         );
       })();
     </script>
+    <script src="script.js"></script>
   </body>
 </html>
