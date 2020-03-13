@@ -12,9 +12,14 @@
   </head>
   <body>
     <h1>
-      Посмотрите код страницы и вывод в консоль браузера. <br />В файле script.js дополнительные
-      задания.
+      Посмотрите код страницы и вывод в консоль браузера.
     </h1>
+    <hr />
+    <p>
+      Добавил 3 решения, первые два на callback и promise работают с синхронными функциями.
+      <br />Третье решение на async await может принимать синхронную и асинхронную функцию fn.
+      <br />В файле script.js дополнительные задания.
+    </p>
 
     <script src="shri-async-hw.js"></script>
     <script>
@@ -110,7 +115,7 @@
 
         for (let i = 0; await less(i, arrayLength); i = await add(i, 1)) {
           const currentElement = await array.get(i);
-          accumulator = fn(accumulator, currentElement, i, array);
+          accumulator = await fn(accumulator, currentElement, i, array);
         }
 
         return accumulator;
@@ -122,6 +127,8 @@
       const asyncArrayAdapted = new AsyncArrayAdapter(testArray);
       const reducerSum = (accumulator, currentValue) => accumulator + currentValue;
       const reducerMultiply = (accumulator, currentValue) => accumulator * currentValue;
+      const reduceSumAsync = (accumulator, currentValue) =>
+        new Promise(resolve => setTimeout(() => resolve(accumulator + currentValue)));
 
       reduceCb(asyncArray, reducerSum, 0, result =>
         console.log("CALLBACK reducerSum result", result)
@@ -140,7 +147,10 @@
 
       console.log("TEST ASYNC AWAIT REDUCE");
       (async () => {
-        console.log("ASYNC AWAIT reduceSum result", await reduce(asyncArrayAdapted, reducerSum, 0));
+        console.log(
+          "ASYNC AWAIT reduceSumAsync result",
+          await reduce(asyncArrayAdapted, reduceSumAsync, 0)
+        );
         console.log(
           "ASYNC AWAIT reducerMultiply result",
           await reduce(asyncArrayAdapted, reducerMultiply, 1)
