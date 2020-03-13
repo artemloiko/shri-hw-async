@@ -79,7 +79,7 @@ Promise.prototype._finally = function(fn) {
 const testMethods = async () => {
   function promiseFactory(success) {
     return new Promise((resolve, reject) => {
-      setTimeout(success ? resolve : reject, Math.random() * 100);
+      setTimeout(success ? () => resolve("Ok") : () => reject("Error"), Math.random() * 100);
     });
   }
 

@@ -18,31 +18,20 @@
 
     <script src="shri-async-hw.js"></script>
     <script>
-      const { AsyncArray } = Homework;
+      const { AsyncArray, add: addCb, less: lessCb, lessOrEqual: lessOrEqualCb } = Homework;
 
-      // callback hell solution
-      function reduceCb(array, fn, initialValue, cb) {
-        let accumulator = initialValue;
-        let arrayLenght = 0;
-
-        const iterateAsyncArray = () => {
-          let i = 0;
-          const asyncArrayIterator = currentValue => {
-            accumulator = fn(accumulator, currentValue, i, array);
-            i += 1;
-            if (i >= length) cb(accumulator);
-            else array.get(i, asyncArrayIterator);
-          };
-          array.get(i, asyncArrayIterator);
+      function promisify(fn) {
+        return function(...args) {
+          return new Promise((resolve, reject) => {
+            fn.apply(this, [...args, resolve]);
+          });
         };
-
-        array.length(length => {
-          arrayLenght = length;
-          iterateAsyncArray();
-        });
       }
 
-      // ASYNC AWAIT solution
+      const add = promisify(addCb);
+      const less = promisify(lessCb);
+      const lessOrEqual = promisify(lessOrEqualCb);
+
       const AsyncArrayAdapter = function(initial) {
         const asyncArray = new AsyncArray(initial);
 
@@ -58,11 +47,68 @@
         this.print = asyncArray.print;
       };
 
+      // CALLBACK hell solution 😈
+      function reduceCb(array, fn, initialValue, cb) {
+        let accumulator = initialValue;
+        let arrayLenght = 0;
+        let i = 0;
+
+        const runIteration = currentValue => {
+          accumulator = fn(accumulator, currentValue, i, array);
+          addCb(i, 1, res => {
+            i = res;
+            checkNextIteration();
+          });
+        };
+
+        const checkNextIteration = () => {
+          lessCb(i, arrayLenght, hasNextIteration => {
+            if (hasNextIteration) array.get(i, runIteration);
+            else cb(accumulator);
+          });
+        };
+
+        array.length(length => {
+          arrayLenght = length;
+          checkNextIteration();
+        });
+      }
+
+      // PROMISE hell solution 🙀
+      function reducePromise(array, fn, initialValue) {
+        return new Promise((resolve, reject) => {
+          let accumulator = initialValue;
+          let arrayLenght = 0;
+          let i = 0;
+
+          const runIteration = currentValue => {
+            accumulator = fn(accumulator, currentValue, i, array);
+            add(i, 1).then(res => {
+              i = res;
+              checkNextIteration();
+            });
+          };
+
+          const checkNextIteration = () => {
+            return less(i, arrayLenght).then(hasNextIteration => {
+              if (hasNextIteration) array.get(i).then(runIteration);
+              else resolve(accumulator);
+            });
+          };
+
+          array.length().then(length => {
+            arrayLenght = length;
+            checkNextIteration();
+          });
+        });
+      }
+
+      // ASYNC AWAIT beautiful solution 😎
       async function reduce(array, fn, initialValue) {
         let accumulator = initialValue;
         const arrayLength = await array.length();
 
-        for (let i = 0; i < arrayLength; i++) {
+        for (let i = 0; await less(i, arrayLength); i = await add(i, 1)) {
           const currentElement = await array.get(i);
           accumulator = fn(accumulator, currentElement, i, array);
         }
@@ -71,7 +117,9 @@
       }
 
       console.log("TEST CALLBACK REDUCE");
-      const asyncArray = new AsyncArray([1, 2, 3, 4]);
+      const testArray = [1, 2, 3, 4];
+      const asyncArray = new AsyncArray(testArray);
+      const asyncArrayAdapted = new AsyncArrayAdapter(testArray);
       const reducerSum = (accumulator, currentValue) => accumulator + currentValue;
       const reducerMultiply = (accumulator, currentValue) => accumulator * currentValue;
 
@@ -82,16 +130,20 @@
         console.log("CALLBACK reducerMultiply result", result)
       );
 
-      (async () => {
-        console.log("TEST ASYNC AWAIT REDUCE");
-        const asyncArray = new AsyncArrayAdapter([1, 2, 3, 4]);
-        const reducerSum = (accumulator, currentValue) => accumulator + currentValue;
-        const reducerMultiply = (accumulator, currentValue) => accumulator * currentValue;
+      console.log("TEST PROMISE REDUCE");
+      reducePromise(asyncArrayAdapted, reducerSum, 0).then(result =>
+        console.log("PROMISE reduceSum result", result)
+      );
+      reducePromise(asyncArrayAdapted, reducerMultiply, 1).then(result =>
+        console.log("PROMISE reducerMultiply result", result)
+      );
 
-        console.log("ASYNC AWAIT reduceSum result", await reduce(asyncArray, reducerSum, 0));
+      console.log("TEST ASYNC AWAIT REDUCE");
+      (async () => {
+        console.log("ASYNC AWAIT reduceSum result", await reduce(asyncArrayAdapted, reducerSum, 0));
         console.log(
           "ASYNC AWAIT reducerMultiply result",
-          await reduce(asyncArray, reducerMultiply, 1)
+          await reduce(asyncArrayAdapted, reducerMultiply, 1)
         );
       })();
     </script>
